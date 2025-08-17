@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>To-Do List</title>
+<style>
+  /* 🎨 Базовые переменные (по умолчанию светлая тема) */
+  :root{
+    --bg: #f9fafb;
+    --panel: #ffffff;
+    --muted: #6b7280;
+    --text: #111827;
+    --accent: #3b82f6;
+    --accent-2:#06b6d4;
+    --ok: #10b981;
+    --danger:#ef4444;
+    --shadow: 0 4px 15px rgba(0,0,0,.1);
+    --radius: 12px;
+  }
+  /* 🌙 Тёмная тема */
+  @media (prefers-color-scheme: dark) {
+    :root{
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #60a5fa;
+      --accent-2:#22d3ee;
+      --ok: #34d399;
+      --danger:#f87171;
+      --shadow: 0 6px 20px rgba(0,0,0,.35);
+    }
+  }
+  /* 🌞 Принудительно светлая */
+  :root.light{
+    --bg: #f9fafb;
+    --panel: #ffffff;
+    --muted: #6b7280;
+    --text: #111827;
+    --accent: #3b82f6;
+    --accent-2:#06b6d4;
+    --ok: #10b981;
+    --danger:#ef4444;
+    --shadow: 0 4px 15px rgba(0,0,0,.1);
+  }
+  /* 🌙 Принудительно тёмная */
+  :root.dark{
+    --bg: #0f172a;
+    --panel: #111827;
+    --muted: #94a3b8;
+    --text: #e5e7eb;
+    --accent: #60a5fa;
+    --accent-2:#22d3ee;
+    --ok: #34d399;
+    --danger:#f87171;
+    --shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family: system-ui, sans-serif;
+    background: var(--bg); color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; padding:16px; transition: background .3s,color .3s;
+  }
+  .app{
+    width:100%; max-width:600px;
+    background:var(--panel);
+    border-radius:var(--radius); padding:16px;
+    box-shadow:var(--shadow);
+    transition: background .3s;
+  }
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  h1{margin:0;font-size:22px;display:flex;align-items:center;gap:6px}
+  h1 .logo{width:26px;height:26px;display:grid;place-items:center;
+    border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:#001018;font-weight:700}
+  .theme-btn{cursor:pointer;border:none;background:var(--accent);color:#fff;
+    padding:6px 10px;border-radius:8px;font-size:14px}
+  .input-row{display:flex;gap:8px;margin:12px 0}
+  .input-row input{flex:1;padding:12px;border-radius:10px;border:1px solid #ccc;background:var(--panel);color:var(--text)}
+  .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#001018;font-weight:600}
+  .btn.danger{background:var(--danger);color:#fff}
+  .controls{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+  .filters{display:flex;gap:6px}
+  .chip{padding:6px 10px;border-radius:20px;background:#e5e7eb;color:#111;font-size:14px;border:none}
+  .chip.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#001018}
+  .counter{font-size:14px;color:var(--muted)}
+  .list{list-style:none;padding:0;margin:12px 0;display:grid;gap:6px}
+  .item{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:6px;padding:10px;border-radius:12px;background:var(--panel)}
+  .item.dragging{opacity:.6;outline:1px dashed var(--accent)}
+  .drag{cursor:grab;opacity:.6}
+  .text{min-height:20px;word-break:break-word}
+  .text.done{text-decoration:line-through;color:var(--muted)}
+  .actions{display:flex;gap:4px}
+  .icon-btn{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:var(--accent);color:#fff;font-size:16px}
+  .icon-btn.ok{background:var(--ok)}
+  .icon-btn.del{background:var(--danger)}
+  .row-end{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .small{font-size:12px;color:var(--muted)}
+  @media (max-width:480px){
+    body{padding:8px}
+    .app{padding:12px}
+    h1{font-size:18px}
+    .input-row{flex-direction:column}
+    .btn{width:100%}
+    .filters{flex:1;justify-content:space-between}
+    .chip{flex:1;text-align:center;padding:6px 0}
+    .item{grid-template-columns:18px 1fr auto;padding:8px}
+    .icon-btn{width:28px;height:28px;font-size:14px}
+    .counter{font-size:12px}
+    .small{font-size:11px;text-align:center}
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1><span class="logo">✓</span> To-Do</h1>
+      <button id="themeToggle" class="theme-btn">🌗</button>
+    </header>
+
+    <div class="input-row">
+      <input id="newTask" type="text" placeholder="Новая задача">
+      <button id="addBtn" class="btn primary">Добавить</button>
+    </div>
+
+    <div class="controls">
+      <div class="filters">
+        <button class="chip active" data-filter="all">Все</button>
+        <button class="chip" data-filter="active">Активные</button>
+        <button class="chip" data-filter="done">Готово</button>
+      </div>
+      <div id="counter" class="counter">0 задач</div>
+    </div>
+
+    <ul id="list" class="list"></ul>
+
+    <div class="row-end">
+      <button id="clearDone" class="btn danger">Очистить выполненные</button>
+      <div class="small">Двойной клик — редактировать, ☰ — перетащить.</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = s=>document.querySelector(s);
+  const $$= s=>document.querySelectorAll(s);
+  const STORAGE='todo-v3';
+  let items=JSON.parse(localStorage.getItem(STORAGE)||'[]');
+  let filter='all';
+
+  const els={
+    input:$('#newTask'),
+    add:$('#addBtn'),
+    list:$('#list'),
+    counter:$('#counter'),
+    clear:$('#clearDone'),
+    filters:$$('.chip'),
+    theme:$('#themeToggle')
+  };
+
+  const save=()=>localStorage.setItem(STORAGE,JSON.stringify(items));
+  const uid=()=>Math.random().toString(36).slice(2,9);
+
+  function render(){
+    let f=filter;
+    let visible=items.filter(x=>f==='all'?1:f==='active'?!x.done:x.done);
+    els.list.innerHTML='';
+    visible.forEach(it=>{
+      let li=document.createElement('li');
+      li.className='item'; li.draggable=true; li.dataset.id=it.id;
+      li.innerHTML=`<div class="drag">☰</div>
+        <div class="text ${it.done?'done':''}">${it.text}</div>
+        <div class="actions">
+          <button class="icon-btn ok">✓</button>
+          <button class="icon-btn del">✕</button>
+        </div>`;
+      li.querySelector('.ok').onclick=()=>{it.done=!it.done;save();render()};
+      li.querySelector('.del').onclick=()=>{items=items.filter(x=>x.id!==it.id);save();render()};
+      let txt=li.querySelector('.text');
+      txt.ondblclick=()=>{txt.contentEditable=true;txt.focus()};
+      txt.onblur=()=>{txt.contentEditable=false;it.text=txt.textContent.trim()||it.text;save();render()};
+      els.list.append(li);
+    });
+    els.counter.textContent=items.length+' задач';
+  }
+
+  els.add.onclick=()=>{let t=els.input.value.trim();if(!t)return;items.push({id:uid(),text:t,done:false});els.input.value='';save();render()};
+  els.input.onkeydown=e=>{if(e.key==='Enter')els.add.click()};
+  els.clear.onclick=()=>{items=items.filter(x=>!x.done);save();render()};
+  els.filters.forEach(b=>b.onclick=()=>{filter=b.dataset.filter;els.filters.forEach(x=>x.classList.toggle('active',x===b));render()});
+
+  // 🌗 Тема
+  els.theme.onclick=()=>{
+    if(document.documentElement.classList.contains('dark')){
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    } else if(document.documentElement.classList.contains('light')){
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+    } else {
+      // если не установлена, включаем темную
+      document.documentElement.classList.add('dark');
+    }
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
